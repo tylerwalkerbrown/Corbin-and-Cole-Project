@@ -177,18 +177,18 @@ from sqlalchemy import create_engine
 ```python
 # create sqlalchemy engine
 engine = create_engine("mysql+pymysql://{user}:{password}@localhost/{database}"
-                       .format(user = 'root',
-                              password = 'Coors1998',
-                              database = 'mlb_pitchers'))
+                       .format(user = '',
+                              password = '',
+                              database = ''))
 ```
 
 
 ```python
 #Connector information
-mydb = mysql.connector.connect(host = "Tylers-MacBook-Pro.local",
+mydb = mysql.connector.connect(host = "
               user = 'root',
-              password = 'Coors1998',
-              database = 'mlb_pitchers'
+              password = '',
+              database = ''
               )
 ```
 
