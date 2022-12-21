@@ -177,18 +177,18 @@ from sqlalchemy import create_engine
 ```python
 # create sqlalchemy engine
 engine = create_engine("mysql+pymysql://{user}:{password}@localhost/{database}"
-                       .format(user = '',
-                              password = '',
-                              database = ''))
+                       .format(user = 'root',
+                              password = 'Coors1998',
+                              database = 'mlb_pitchers'))
 ```
 
 
 ```python
 #Connector information
-mydb = mysql.connector.connect(host = "",
+mydb = mysql.connector.connect(host = "Tylers-MacBook-Pro.local",
               user = 'root',
-              password = '',
-              database = ''
+              password = 'Coors1998',
+              database = 'mlb_pitchers'
               )
 ```
 
@@ -1209,41 +1209,392 @@ Looking at the graph you can see a very low spin rate in a particular part of th
 
 
 ```python
+#Finding unique values in pitch name
+```
+
+
+```python
+different_pitches = """SELECT DISTINCT(pitch_name)
+from mlb_pitchers.corbin_burns"""
+```
+
+
+```python
+#Here we have a list of distinct pitches that corbin throws so we can plot
+pd.read_sql(different_pitches, con= engine)
+```
+
+    Exception during reset or similar
+    Traceback (most recent call last):
+      File "/Users/tylerbrown/opt/anaconda3/lib/python3.9/site-packages/pymysql/connections.py", line 756, in _write_bytes
+        self._sock.sendall(data)
+    BrokenPipeError: [Errno 32] Broken pipe
+    
+    During handling of the above exception, another exception occurred:
+    
+    Traceback (most recent call last):
+      File "/Users/tylerbrown/opt/anaconda3/lib/python3.9/site-packages/sqlalchemy/pool/base.py", line 739, in _finalize_fairy
+        fairy._reset(pool)
+      File "/Users/tylerbrown/opt/anaconda3/lib/python3.9/site-packages/sqlalchemy/pool/base.py", line 988, in _reset
+        pool._dialect.do_rollback(self)
+      File "/Users/tylerbrown/opt/anaconda3/lib/python3.9/site-packages/sqlalchemy/engine/default.py", line 682, in do_rollback
+        dbapi_connection.rollback()
+      File "/Users/tylerbrown/opt/anaconda3/lib/python3.9/site-packages/pymysql/connections.py", line 479, in rollback
+        self._execute_command(COMMAND.COM_QUERY, "ROLLBACK")
+      File "/Users/tylerbrown/opt/anaconda3/lib/python3.9/site-packages/pymysql/connections.py", line 814, in _execute_command
+        self._write_bytes(packet)
+      File "/Users/tylerbrown/opt/anaconda3/lib/python3.9/site-packages/pymysql/connections.py", line 759, in _write_bytes
+        raise err.OperationalError(
+    pymysql.err.OperationalError: (2006, "MySQL server has gone away (BrokenPipeError(32, 'Broken pipe'))")
+
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>pitch_name</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Curveball</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Cutter</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Sinker</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Changeup</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>Slider</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>4-Seam Fastball</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>None</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
 #Exploring the spin rate of the curveball over the 2022 season 
-plt.plot(corbin[corbin['pitch_name'] == 'Curveball'].release_spin_rate)
+plt.plot(corbin[corbin['pitch_name'] == 'Sinker'].release_spin_rate, label = 'Sinker', alpha = .4)
+plt.plot(corbin[corbin['pitch_name'] == 'Cutter'].release_spin_rate, label = 'Cutter', alpha = .4)
+plt.plot(corbin[corbin['pitch_name'] == 'Changeup'].release_spin_rate, label = 'Changeup', alpha = .4)
+plt.plot(corbin[corbin['pitch_name'] == 'Slider'].release_spin_rate, label = 'Slider', alpha = .4)
+plt.plot(corbin[corbin['pitch_name'] == 'Curveball'].release_spin_rate, label = 'Curveball', alpha = .4)
+plt.title('Pitches')
+plt.xlabel('Number of pitches')
+plt.ylabel('Spin Rate')
+plt.legend()
+
+
 ```
 
 
 
 
-    [<matplotlib.lines.Line2D at 0x7fbf5bfdadc0>]
+    <matplotlib.legend.Legend at 0x7fbf3fb78be0>
 
 
 
 
     
-![png](output_29_1.png)
+![png](output_32_1.png)
     
 
 
 Here we calculated the parobability of that low of a spin rate occuring compared to Corbin burns average spin rate
 
+# Probability of Specific Spin Rates
+
 
 ```python
-corbin.columns
+#Grouping by the date and the pitch name to collect spin rate averages 
+speed_stats = corbin.groupby(['game_date','pitch_name'])['release_speed'].describe()
+spin_stats = corbin.groupby(['game_date','pitch_name'])['release_spin_rate'].describe()
+```
+
+
+```python
+#Reading decriptive statistics into sql
+speed_stats.to_sql('corbin_speed_stats', con = engine, if_exists = 'append', chunksize = len(pitch_stats))
+spin_stats.to_sql('corbin_spin_stats', con = engine, if_exists = 'append', chunksize = len(pitch_stats))
+```
+
+The next two tables are used to automate the z-scores for give games based on the amount thrown of that particular pitch. This table also caputure the z scores of the particular game vs the average of the whole season of pitches based on pitch type. In the final subquery we join the data on pitch name to get the across the board average versus the particular pitch. Had to create the code in mysql to run because python returned an error on the dashes to call for column names that contain special characters.
+
+This is the formula I used when calculating the Z-score:![image.png](attachment:image.png)
+create table mlb_pitchers.corbin_spin_z_scores as (
+with game_zs as
+(SELECT game_date, pitch_name as pitch, count, mean, std, min, `25%`, `50%`, `75%`, max, 
+((`25%` - mean )/`std`) as 1st_z_game,
+((`50%`- mean)/`std`) as 2nd_z_game,
+((`75%`- mean)/`std`) as 3rd_z_game,
+((`max`- mean)/`std`) as max_z_game,
+((`min`- mean)/`std`) as min_z_game
+ FROM mlb_pitchers.corbin_spin_stats)
+ ,total_z as 
+ (select distinct(pitch_name), std(release_spin_rate) as total_spin_std, avg(release_spin_rate) as total_spin_avg
+ from mlb_pitchers.corbin_burns
+ group by pitch_name) 
+ select  *,
+ ((`25%` - total_spin_avg )/total_spin_std) as 1st_z_population,
+((`50%`- total_spin_avg)/total_spin_std) as 2nd_z_population,
+((`75%`- total_spin_avg)/total_spin_std) as 3rd_z_population,
+((`max`- total_spin_avg)/total_spin_std) as max_z_population,
+((`min`- total_spin_avg)/total_spin_std) as min_z_population
+ from total_z
+ join game_zs on total_z.pitch_name =game_zs.pitch
+ )
+ create table mlb_pitchers.corbin_speed_z_score as (
+(with game_zs as
+(SELECT game_date, pitch_name as pitch, count, mean, std, min, `25%`, `50%`, `75%`, max,
+((`25%` - mean )/`std`) as 1st_z_game,
+((`50%`- mean)/`std`) as 2nd_z_game,
+((`75%`- mean)/`std`) as 3rd_z_game,
+((`max`- mean)/`std`) as max_z_game,
+((`min`- mean)/`std`) as min_z_game
+ FROM mlb_pitchers.corbin_speed_stats)
+ ,total_z as 
+ (select distinct(pitch_name), std(release_speed) as total_speed_std, avg(release_speed) as total_speed_avg
+ from mlb_pitchers.corbin_burns
+ group by pitch_name) 
+ select *,
+ ((`25%` - total_speed_avg )/total_speed_std) as 1st_z_population,
+((`50%`- total_speed_avg)/total_speed_std) as 2nd_z_population,
+((`75%`- total_speed_avg)/total_speed_std) as 3rd_z_population,
+((`max`- total_speed_avg)/total_speed_std) as max_z_population,
+((`min`- total_speed_avg)/total_speed_std) as min_z_population
+ from game_zs
+ join total_z on total_z.pitch_name =game_zs.pitch)
+ )
+
+
+```python
+#Queries for reading in the new z_score data
+speed_z_scores = """select * from mlb_pitchers.corbin_speed_z_score"""
+spin_z_scores = """select * from mlb_pitchers.corbin_spin_z_scores"""
+```
+
+
+```python
+speed_z_scores = pd.read_sql(speed_z_scores,con = engine)
+```
+
+
+```python
+spin_z_scores = pd.read_sql(spin_z_scores,con = engine)
+```
+
+
+```python
+spin_z_scores.head()
 ```
 
 
 
 
-    Index(['game_date', 'sz_top', 'sz_bot', 'pitch_name', 'release_speed',
-           'home_team', 'away_team', 'stand', 'release_spin_rate', 'description',
-           'plate_x', 'plate_z', 'hc_x', 'hc_y'],
-          dtype='object')
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>pitch_name</th>
+      <th>total_spin_std</th>
+      <th>total_spin_avg</th>
+      <th>game_date</th>
+      <th>pitch</th>
+      <th>count</th>
+      <th>mean</th>
+      <th>std</th>
+      <th>min</th>
+      <th>25%</th>
+      <th>...</th>
+      <th>1st_z_game</th>
+      <th>2nd_z_game</th>
+      <th>3rd_z_game</th>
+      <th>max_z_game</th>
+      <th>min_z_game</th>
+      <th>1st_z_population</th>
+      <th>2nd_z_population</th>
+      <th>3rd_z_population</th>
+      <th>max_z_population</th>
+      <th>min_z_population</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Curveball</td>
+      <td>116.903588</td>
+      <td>2755.087221</td>
+      <td>2022-08-29</td>
+      <td>Curveball</td>
+      <td>19.0</td>
+      <td>2747.894737</td>
+      <td>97.487261</td>
+      <td>2631.0</td>
+      <td>2675.5</td>
+      <td>...</td>
+      <td>-0.742607</td>
+      <td>-0.306653</td>
+      <td>0.596029</td>
+      <td>2.339847</td>
+      <td>-1.199077</td>
+      <td>-0.680794</td>
+      <td>-0.317246</td>
+      <td>0.435511</td>
+      <td>1.889701</td>
+      <td>-1.061449</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Curveball</td>
+      <td>116.903588</td>
+      <td>2755.087221</td>
+      <td>2022-08-23</td>
+      <td>Curveball</td>
+      <td>21.0</td>
+      <td>2754.047619</td>
+      <td>77.104783</td>
+      <td>2615.0</td>
+      <td>2691.0</td>
+      <td>...</td>
+      <td>-0.817688</td>
+      <td>-0.104373</td>
+      <td>0.829422</td>
+      <td>1.841032</td>
+      <td>-1.803359</td>
+      <td>-0.548206</td>
+      <td>-0.077733</td>
+      <td>0.538160</td>
+      <td>1.205376</td>
+      <td>-1.198314</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Curveball</td>
+      <td>116.903588</td>
+      <td>2755.087221</td>
+      <td>2022-08-18</td>
+      <td>Curveball</td>
+      <td>19.0</td>
+      <td>2797.631579</td>
+      <td>73.242528</td>
+      <td>2583.0</td>
+      <td>2761.0</td>
+      <td>...</td>
+      <td>-0.500141</td>
+      <td>0.264442</td>
+      <td>0.489721</td>
+      <td>1.984754</td>
+      <td>-2.930423</td>
+      <td>0.050578</td>
+      <td>0.529605</td>
+      <td>0.670747</td>
+      <td>1.607417</td>
+      <td>-1.472044</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Curveball</td>
+      <td>116.903588</td>
+      <td>2755.087221</td>
+      <td>2022-08-13</td>
+      <td>Curveball</td>
+      <td>16.0</td>
+      <td>2720.187500</td>
+      <td>30.962814</td>
+      <td>2646.0</td>
+      <td>2704.0</td>
+      <td>...</td>
+      <td>-0.522805</td>
+      <td>-0.054501</td>
+      <td>0.607584</td>
+      <td>2.125534</td>
+      <td>-2.396019</td>
+      <td>-0.437003</td>
+      <td>-0.312969</td>
+      <td>-0.137611</td>
+      <td>0.264430</td>
+      <td>-0.933138</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>Curveball</td>
+      <td>116.903588</td>
+      <td>2755.087221</td>
+      <td>2022-08-07</td>
+      <td>Curveball</td>
+      <td>23.0</td>
+      <td>2729.652174</td>
+      <td>69.212196</td>
+      <td>2614.0</td>
+      <td>2684.0</td>
+      <td>...</td>
+      <td>-0.659597</td>
+      <td>-0.096113</td>
+      <td>0.359009</td>
+      <td>2.360102</td>
+      <td>-1.670980</td>
+      <td>-0.608084</td>
+      <td>-0.274476</td>
+      <td>-0.005023</td>
+      <td>1.179714</td>
+      <td>-1.206868</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 23 columns</p>
+</div>
 
 
-
-# Probability of Specific Spin Rates
 
 
 ```python
@@ -1266,7 +1617,7 @@ plt.show()
 
 
     
-![png](output_33_1.png)
+![png](output_45_1.png)
     
 
 
@@ -1393,7 +1744,7 @@ plt.legend()
 
 
     
-![png](output_41_1.png)
+![png](output_53_1.png)
     
 
 
@@ -1401,6 +1752,7 @@ plt.legend()
 
 
 ```python
+#Selecting a sample of 50 columns each from eazch pitch type to have evenly spread clusters 
 sample = """(SELECT pitch_name, release_spin_rate,release_speed
 FROM mlb_pitchers.corbin_burns
 where pitch_name = 'Curveball'
@@ -1448,7 +1800,7 @@ sns.relplot(
 
 
     
-![png](output_45_0.png)
+![png](output_57_0.png)
     
 
 
@@ -1468,9 +1820,11 @@ plt.legend()
 
 
     
-![png](output_46_1.png)
+![png](output_58_1.png)
     
 
+
+Creating a Chart for balls and strikes
 
 
 ```python
@@ -1488,7 +1842,7 @@ plt.legend()
 
 
     
-![png](output_47_1.png)
+![png](output_60_1.png)
     
 
 
@@ -1508,7 +1862,7 @@ plt.legend()
 
 
     
-![png](output_48_1.png)
+![png](output_61_1.png)
     
 
 
@@ -1521,13 +1875,13 @@ plt.title("Most Used Pitch")
 
 
 
-    Text(0.5, 1.0, 'Most Hit Pitch')
+    Text(0.5, 1.0, 'Most Used Pitch')
 
 
 
 
     
-![png](output_49_1.png)
+![png](output_62_1.png)
     
 
 
@@ -1548,7 +1902,7 @@ plt.title("Most Hit Pitch")
 
 
     
-![png](output_50_1.png)
+![png](output_63_1.png)
     
 
 
@@ -1680,6 +2034,7 @@ pitch_usage_per
 #Plotting the most ciommon results
 sns.countplot(x=corbin["description"])
 plt.title("Common Results")
+
 ```
 
 
@@ -1691,11 +2046,129 @@ plt.title("Common Results")
 
 
     
-![png](output_55_1.png)
+![png](output_68_1.png)
+    
+
+
+# Pitches Thrown Game to Game
+
+
+```python
+#Ordering the spin rates by date
+spin = """select *
+from mlb_pitchers.corbin_spin_stats
+order by game_date"""
+```
+
+
+```python
+#Indexing the date column
+spin = pd.read_sql(ordered, con = engine)
+spin = spin.set_index('game_date')
+```
+
+
+```python
+#Game over game average spin rates
+plt.plot(spin[spin['pitch_name'] == 'Curveball']['mean'], label = 'Curveball')
+plt.plot(spin[spin['pitch_name'] == 'Sinker']['mean'], label = 'Sinker')
+plt.plot(spin[spin['pitch_name'] == 'Cutter']['mean'], label = 'Cutter')
+plt.plot(spin[spin['pitch_name'] == 'Changeup']['mean'], label = 'Changeup')
+plt.plot(spin[spin['pitch_name'] == 'Slider']['mean'], label = 'Slider')
+plt.title('Average Spin Rate Game over Game')
+plt.xlabel('Games')
+plt.legend()
+plt.xticks(rotation=90)
+
+```
+
+
+
+
+    ([0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25],
+     [Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, ''),
+      Text(0, 0, '')])
+
+
+
+
+    
+![png](output_72_1.png)
     
 
 
 
 ```python
-pitch_result = corbin#[corbin['description']=='ball']
+plt.plot(speed_stats[speed_stats['pitch_name'] == 'Sinker']['mean'], label = 'Sinker')
+plt.plot(speed_stats[speed_stats['pitch_name'] == 'Cutter']['mean'], label = 'Cutter')
+plt.plot(speed_stats[speed_stats['pitch_name'] == 'Changeup']['mean'], label = 'Changeup')
+plt.plot(speed_stats[speed_stats['pitch_name'] == 'Slider']['mean'], label = 'Slider')
+plt.plot(speed_stats[speed_stats['pitch_name'] == 'Curveball']['mean'], label = 'Curveball')
+plt.title('Average Velocities Game over Game')
+plt.xlabel('Games')
+plt.xticks(rotation=90)
+
+plt.legend()
 ```
+
+
+
+
+    <matplotlib.legend.Legend at 0x7fbf8ab3dbb0>
+
+
+
+
+    
+![png](output_73_1.png)
+    
+
