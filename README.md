@@ -23,4 +23,10 @@ This script is campable of calculating the probability of spin rate and velocity
 ![output_65_1](https://user-images.githubusercontent.com/94020684/209399321-1e155a6f-cad6-43a1-be1b-89eedcb24aa5.png)
 ![output_49_1](https://user-images.githubusercontent.com/94020684/209399322-7e64ace9-c74f-46b6-9d59-3d418bf30ede.png)
 ![output_48_1](https://user-images.githubusercontent.com/94020684/209399323-162e08a5-5888-4226-8453-c09db494b8d9.png)
+
+This series of pitches was tracked from the first to the last pitch thrown in the searson for Corbin Burns. You can see that all the pitches have a somewhat consistent pattern except for a sudden drop in spin rate. I figured that this would potentially cause a loss in velocity as well but it did not seem to be the case. 
+
+
+![image](https://user-images.githubusercontent.com/94020684/210619929-0a359cad-4bc0-465b-993a-401a1dd0e665.png)
+
 ![output_33_1](https://user-images.githubusercontent.com/94020684/209399324-abf59fb6-2c67-49bd-bcbe-e67933aed849.png)
