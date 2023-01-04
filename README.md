@@ -5,10 +5,10 @@ This script is campable of calculating the probability of spin rate and velocity
  - Create database for pitchers data to be stored
  - Set up connection using an api from MySQLWorkbench to python 
  - Create dynamic queries based on:
-   -- Pitch type 
-   -- Pitcher 
-   -- Velocity 
-   -- Spin Rate 
+   - Pitch type 
+   - Pitcher 
+   - Velocity 
+   - Spin Rate 
    
  The data had to be pulled from statcast into SQL bench using an api from MySQL. When the database is created I then took the script and started to format queries to get custom reports on the probability of a specific instance using the instance minus the mean to then divide by the standard deviation to get the z-score. With that Z-score you can pass it through scipy.stats.norm.sf() to get the probabilty of the observation. One example of the functional use is that I was able to findout that a spin rate of 2500 had a 8.34% chance for Corbin Burns. I investigated his lowest performing spin rate game and found a vast majority of his pitches had a spin rate P >.05. This application can also be used to test data against eachother (AB Testing).  
  
