@@ -12,7 +12,6 @@ This script is campable of calculating the probability of spin rate and velocity
  Goal of project:
  - showcase etl process using SQL, Python and Web API
  - probability testing fundamentals 
- - AB testing
  - Documentation
  - Statistics
 
